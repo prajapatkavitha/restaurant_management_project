@@ -15,7 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 from account.permissions import IsManagerOrAdmin
 
 class MenuViewSet(viewsets.ModelViewSet):
-    queryset = Menu.objects.all()
+    queryset = Menu.objects.all().select_related('category')
     serializer_class = MenuSerializer
     permission_classes = [IsAuthenticated, IsManagerOrAdmin]
 '''
@@ -39,4 +39,5 @@ class ItemView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
