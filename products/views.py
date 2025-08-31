@@ -8,6 +8,16 @@ from account.permissions import IsManagerOrAdmin
 from .models import Item
 from .serializers import ItemSerializer
 
+from rest_framework import viewsets
+from .models import Menu
+from .serializers import MenuSerializer
+from rest_framework.permissions import IsAuthenticated
+from account.permissions import IsManagerOrAdmin
+
+class MenuViewSet(viewsets.ModelViewSet):
+    queryset = Menu.objects.all()
+    serializer_class = MenuSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
 '''
 NOTE: Consider this as a reference and follow this same coding structure or format to work on your tasks
 '''
@@ -29,3 +39,4 @@ class ItemView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
