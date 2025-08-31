@@ -2,16 +2,21 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 
+from account.permissions import IsManagerOrAdmin
 from .models import Item
 from .serializers import ItemSerializer
 
 '''
-NOTE: Conside this as a reference and follow this same coding structure or format to work on you tasks
+NOTE: Consider this as a reference and follow this same coding structure or format to work on your tasks
 '''
 
 # Create your views here.
 class ItemView(APIView):
+    # This line applies the permissions to both GET and POST requests.
+    # Users must be authenticated, and their role must be Admin or Manager.
+    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
 
     def get(self, request):
         items = Item.objects.all()
