@@ -3,18 +3,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets
 
 from account.permissions import IsWaiter, IsCashier
 from .models import Order
 from .serializers import OrderSerializer
-
-'''
-NOTE: Consider this as a reference and follow this same coding structure or format to work on your tasks
-'''
-class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated, IsWaiter | IsCashier]
 
 # Create your views here.
 class OrderView(APIView):
@@ -34,3 +27,7 @@ class OrderView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class OrderViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated, IsWaiter | IsCashier]
