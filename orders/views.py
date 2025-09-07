@@ -4,12 +4,31 @@ from rest_framework.response import Response
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from django.db.models import Sum
 
 from account.permissions import IsWaiter, IsCashier
 from .models import Order
 from .serializers import OrderSerializer
 
 # Create your views here.
+class TopCustomersReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        top_customers = Order.objects.values(
+            'waiter__username'  # Using waiter field as a proxy for customer since customer name isn't stored in the Order model.
+        ).annotate(
+            total_spent=Sum('total')
+        ).order_by('-total_spent')[:5]
+
+        # Formatting the output to match the desired example.
+        formatted_customers = [
+            {'name': customer['waiter__username'], 'total_spent': customer['total_spent']}
+            for customer in top_customers
+        ]
+
+        return Response({'customers': formatted_customers}, status=status.HTTP_200_OK)
+
 class OrderView(APIView):
     # This line applies the permissions to both GET and POST requests.
     # Users must be authenticated, and their role must be Waiter or Cashier.
