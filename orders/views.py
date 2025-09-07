@@ -11,6 +11,10 @@ from .serializers import OrderSerializer
 '''
 NOTE: Consider this as a reference and follow this same coding structure or format to work on your tasks
 '''
+class OrderViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated, IsWaiter | IsCashier]
 
 # Create your views here.
 class OrderView(APIView):
@@ -29,3 +33,4 @@ class OrderView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
