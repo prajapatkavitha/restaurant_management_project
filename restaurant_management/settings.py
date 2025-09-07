@@ -178,4 +178,12 @@ if DEBUG:
         "127.0.0.1",
     ]
 
+# Celery Beat Scheduling
+CELERY_BEAT_SCHEDULE = {
+    'daily-sales-report-task': {
+        'task': 'restaurant_management.tasks.generate_daily_sales_report',
+        'schedule': 86400.0,  # 24 hours in seconds
+    },
+}
+
 
