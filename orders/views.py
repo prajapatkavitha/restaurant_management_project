@@ -5,10 +5,10 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from django.db.models import Sum
-
+from rest_framework import generics
+from .models import Order, Reservation
+from .serializers import OrderSerializer, ReservationSerializer
 from account.permissions import IsWaiter, IsCashier
-from .models import Order
-from .serializers import OrderSerializer
 
 # Create your views here.
 class TopCustomersReportView(APIView):
@@ -71,3 +71,18 @@ class WaiterOrderViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ReservationView(generics.CreateAPIView):
+    queryset = Reservation.objects.all()
+    serializer_class = ReservationSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {"message": "Reservation confirmed", "reservation_id": serializer.data['id']},
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
