@@ -12,6 +12,7 @@ from account.permissions import IsWaiter, IsCashier
 
 # Create your views here.
 class TopCustomersReportView(APIView):
+    # Only authenticated users can view this report.
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -73,6 +74,8 @@ class WaiterOrderViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class ReservationView(generics.CreateAPIView):
+    # Only authenticated users can create a reservation.
+    permission_classes = [IsAuthenticated]
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
 
