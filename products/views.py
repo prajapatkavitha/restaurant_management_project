@@ -2,23 +2,17 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.core.cache import cache
+from django.db.models import Count
 
 from .models import Item, Menu
 from .serializers import ItemSerializer, MenuSerializer
 from account.permissions import IsManagerOrAdmin
-
-class MenuViewSet(viewsets.ModelViewSet):
-    queryset = Menu.objects.all().select_related('category')
-    serializer_class = MenuSerializer
-    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
+from orders.models import OrderItem
 
 class ItemView(APIView):
-    # This line applies the permissions to both GET and POST requests.
-    # Users must be authenticated, and their role must be Admin or Manager.
-    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
-
     def get(self, request):
         items = Item.objects.all()
         serializer = ItemSerializer(items, many=True)
@@ -30,3 +24,44 @@ class ItemView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PopularMenuView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request, *args, **kwargs):
+        cache_key = 'popular_menu_items'
+        
+        # Try to get data from the cache
+        items = cache.get(cache_key)
+
+        if not items:
+            # If not in cache, fetch from the database
+            items = Menu.objects.order_by('-order_count')[:5] 
+            
+            # Cache the data for 5 minutes (300 seconds)
+            cache.set(cache_key, items, 300)
+            
+        serializer = MenuSerializer(items, many=True)
+        return Response(serializer.data)
+
+class MenuViewSet(viewsets.ModelViewSet):
+    queryset = Menu.objects.all().select_related('category')
+    serializer_class = MenuSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
+    
+class PopularDishesReportView(APIView):
+    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
+    
+    def get(self, request):
+        popular_dishes = OrderItem.objects.values(
+            'item__name'
+        ).annotate(
+            orders=Count('id')
+        ).order_by('-orders')[:5]
+        
+        # Format the output to match the desired example
+        formatted_dishes = [
+            {'dish': dish['item__name'], 'orders': dish['orders']}
+            for dish in popular_dishes
+        ]
+        
+        return Response(formatted_dishes, status=status.HTTP_200_OK)
