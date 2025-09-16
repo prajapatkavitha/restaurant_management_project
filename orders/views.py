@@ -1,19 +1,28 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, permissions
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from django.db.models import Sum
 from rest_framework import generics
 from .models import Order, Reservation
 from .serializers import OrderSerializer, ReservationSerializer
-from account.permissions import IsWaiter, IsCashier
+from account.permissions import IsWaiter, IsCashier, IsManagerOrAdmin
+
+# Custom permission for customers
+class IsCustomer(permissions.BasePermission):
+    """
+    Custom permission to only allow customer users access.
+    """
+    def has_permission(self, request, view):
+        # Assumes the 'role' field exists on the User model
+        return request.user and request.user.role == 'customer'
 
 # Create your views here.
 class TopCustomersReportView(APIView):
-    # Only authenticated users can view this report.
-    permission_classes = [IsAuthenticated]
+    # Only authenticated manager or admin users can view this report.
+    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
 
     def get(self, request):
         top_customers = Order.objects.values(
@@ -74,8 +83,8 @@ class WaiterOrderViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class ReservationView(generics.CreateAPIView):
-    # Only authenticated users can create a reservation.
-    permission_classes = [IsAuthenticated]
+    # Only authenticated customer users can create a reservation.
+    permission_classes = [IsAuthenticated, IsCustomer]
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
 
