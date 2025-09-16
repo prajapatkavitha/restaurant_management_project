@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem
+from .models import Order, OrderItem, Reservation
 from products.models import Menu
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -38,3 +38,9 @@ class OrderSerializer(serializers.ModelSerializer):
         instance.save()
         
         return instance
+
+class ReservationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reservation
+        fields = ['id', 'customer', 'table_number', 'date', 'time', 'created_at']
+        read_only_fields = ['id', 'created_at']
