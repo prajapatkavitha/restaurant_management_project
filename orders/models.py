@@ -41,7 +41,8 @@ class OrderItem(models.Model):
         return f"{self.quantity} x {self.item.name}"
 ```
 eof
-After you've updated the `orders/models.py` file, you need to apply these changes to your database by running the following commands in your terminal:
+
+The file is now ready. As you noted, the next step is to apply these changes to your database by running the following commands in your terminal:
 
 ```bash
 python manage.py makemigrations orders
