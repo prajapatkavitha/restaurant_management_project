@@ -1,3 +1,10 @@
-from django.shortcuts import render
+from rest_framework import generics
+from products.models import Category
+from .serializers import CategorySerializer
 
-# Create your views here.
+class CategoryListAPIView(generics.ListAPIView):
+    """
+    API view to list all menu categories.
+    """
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
