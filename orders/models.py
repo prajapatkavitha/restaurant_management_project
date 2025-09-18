@@ -1,15 +1,31 @@
 from django.db import models
 from django.conf import settings
 
-# Create your models here.
-class Order(models.Model):
-    # Status choices for an order
+class OrderStatus(models.Model):
+    """
+    A model to represent different order statuses.
+    """
+
     class StatusChoices(models.TextChoices):
-        PENDING = "pending", "Pending"
-        IN_PROGRESS = "in_progress", "In Progress"
-        SERVED = "served", "Served"
-    
-    # Foreign key to the User model to link an order to a waiter
+        PENDING = 'pending', 'Pending'
+        PREPARING = 'preparing', 'Preparing'
+        COMPLETED = 'completed', 'Completed'
+        CANCELLED = 'cancelled', 'Cancelled'
+
+    name = models.CharField(
+        max_length=50,
+        unique=True,
+        choices=StatusChoices.choices,
+        default=StatusChoices.PENDING
+    )
+
+    def __str__(self):
+        return self.name
+
+class Order(models.Model):
+    """
+    Model representing a customer's order.
+    """
     waiter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -17,10 +33,11 @@ class Order(models.Model):
         related_name='orders'
     )
     table_number = models.IntegerField()
-    status = models.CharField(
-        max_length=20,
-        choices=StatusChoices.choices,
-        default=StatusChoices.PENDING
+    status = models.ForeignKey(
+        OrderStatus,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='orders_by_status'
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -29,6 +46,9 @@ class Order(models.Model):
         return f"Order #{self.id} for Table {self.table_number}"
 
 class OrderItem(models.Model):
+    """
+    Model representing a single item within an order.
+    """
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
@@ -39,11 +59,3 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.item.name}"
-```
-eof
-
-The file is now ready. As you noted, the next step is to apply these changes to your database by running the following commands in your terminal:
-
-```bash
-python manage.py makemigrations orders
-python manage.py migrate
