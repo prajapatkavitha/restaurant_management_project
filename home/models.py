@@ -9,12 +9,7 @@ class MenuCategory(models.Model):
 
     def __str__(self):
         return self.name
-
-```
-eof
-
-I have created the `MenuCategory` model with a unique `name` field. The next and final steps in the task are to run the migrations to create the new table in your database. You can do this by running the following commands in your terminal:
-
-```bash
+        
 python manage.py makemigrations home
 python manage.py migrate
+
