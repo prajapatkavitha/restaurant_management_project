@@ -1,13 +1,13 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, viewsets, permissions
+from rest_framework import status, viewsets, permissions, generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from django.db.models import Sum
-from rest_framework import generics
-from .models import Order, Reservation
-from .serializers import OrderSerializer, ReservationSerializer
+from .models import Order, OrderItem, Reservation, Coupon
+from .serializers import OrderSerializer, ReservationSerializer, CouponSerializer
+from .utils import generate_coupon_code
 from account.permissions import IsWaiter, IsCashier, IsManagerOrAdmin
 
 # Custom permission for customers
@@ -98,3 +98,20 @@ class ReservationView(generics.CreateAPIView):
             status=status.HTTP_201_CREATED,
             headers=headers
         )
+
+class CouponViewSet(viewsets.ModelViewSet):
+    """
+    A ViewSet for viewing and editing Coupon instances.
+    """
+    queryset = Coupon.objects.all()
+    serializer_class = CouponSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
+    
+    def perform_create(self, serializer):
+        """
+        Overrides the create method to automatically generate a unique
+        coupon code before saving the instance.
+        """
+        # Generate a unique code and pass it to the serializer save method
+        coupon_code = generate_coupon_code()
+        serializer.save(code=coupon_code)
