@@ -1,6 +1,6 @@
 import secrets
 import string
-from django.db import models
+from django.db import models 
 
 # For demonstration, a placeholder model. In your project, you'll
 # likely import your actual Coupon model from a file like models.py.
