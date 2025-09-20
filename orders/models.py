@@ -1,11 +1,11 @@
 from django.db import models
 from django.conf import settings
+from django.db.models import Sum
 
 class OrderStatus(models.Model):
     """
     A model to represent different order statuses.
     """
-
     class StatusChoices(models.TextChoices):
         PENDING = 'pending', 'Pending'
         PREPARING = 'preparing', 'Preparing'
@@ -26,6 +26,12 @@ class Order(models.Model):
     """
     Model representing a customer's order.
     """
+    # This field links an order to a customer for the order history task.
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='customer_orders'
+    )
     waiter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -41,6 +47,12 @@ class Order(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def total_price(self):
+        """Calculates the total price of the order by summing up item prices."""
+        total = self.items.aggregate(total=Sum(models.F('quantity') * models.F('item__price')))['total']
+        return total if total is not None else 0
 
     def __str__(self):
         return f"Order #{self.id} for Table {self.table_number}"
@@ -59,3 +71,32 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.item.name}"
+
+class Reservation(models.Model):
+    """
+    A model to represent a reservation.
+    """
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reservations'
+    )
+    table_number = models.IntegerField()
+    date = models.DateField()
+    time = models.TimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Reservation by {self.customer.username} for Table {self.table_number} on {self.date}"
+
+class Coupon(models.Model):
+    """
+    A model to represent a coupon code.
+    """
+    code = models.CharField(max_length=20, unique=True)
+    active = models.BooleanField(default=True)
+    discount = models.DecimalField(max_digits=5, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.code
