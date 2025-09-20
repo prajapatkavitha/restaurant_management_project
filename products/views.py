@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.core.cache import cache
 from django.db.models import Count
 
-from .models import Item, Menu
+from .models import Item, Menu, Category
 from .serializers import ItemSerializer, MenuSerializer
 from account.permissions import IsManagerOrAdmin
 from orders.models import OrderItem
@@ -65,3 +65,29 @@ class PopularDishesReportView(APIView):
         ]
         
         return Response(formatted_dishes, status=status.HTTP_200_OK)
+
+class MenuCategoryListView(generics.ListAPIView):
+    """
+    API view to list menu items, with an option to filter by category.
+    
+    Example usage:
+    GET /api/menu/by-category/?category=Appetizers
+    """
+    serializer_class = MenuSerializer
+
+    def get_queryset(self):
+        """
+        Optionally filters menu items by category name provided in a query parameter.
+        """
+        queryset = Menu.objects.all()
+        category_name = self.request.query_params.get('category', None)
+        
+        if category_name is not None:
+            try:
+                category = Category.objects.get(name=category_name)
+                queryset = queryset.filter(category=category)
+            except Category.DoesNotExist:
+                # If the category does not exist, return an empty queryset
+                queryset = Menu.objects.none()
+
+        return queryset
