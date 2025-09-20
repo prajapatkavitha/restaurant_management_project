@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Menu, Category
+from .models import Menu, Category, Item
 
 class ItemSerializer(serializers.ModelSerializer):
     """
@@ -9,9 +9,17 @@ class ItemSerializer(serializers.ModelSerializer):
         model = Item
         fields = '__all__'
 
+class CategorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Category model.
+    """
+    class Meta:
+        model = Category
+        fields = ['id', 'name']
+
 class MenuSerializer(serializers.ModelSerializer):
     """
-    Serializer for the Menu model, including all relevant fields.
+    Serializer for the Menu model, including the category name.
     """
     category = serializers.CharField(source='category.name', read_only=True)
     
