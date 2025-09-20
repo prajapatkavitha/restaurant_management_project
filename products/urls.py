@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import PopularDishesReportView, PopularMenuView, MenuViewSet, MenuCategoryListView
+from .views import PopularDishesReportView, PopularMenuView, MenuViewSet, MenuCategoryListView # Make sure to import the new view
 
 router = DefaultRouter()
 router.register(r'', MenuViewSet, basename='menu')
