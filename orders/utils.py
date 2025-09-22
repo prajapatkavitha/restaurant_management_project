@@ -1,45 +1,50 @@
-import secrets
-import string
-from django.db import models 
+from django.core.mail import send_mail
+from django.conf import settings
+import logging
 
-# For demonstration, a placeholder model. In your project, you'll
-# likely import your actual Coupon model from a file like models.py.
-class Coupon(models.Model):
-    """
-    A simple model to represent a coupon code.
-    """
-    code = models.CharField(max_length=20, unique=True)
-    active = models.BooleanField(default=True)
-    discount = models.DecimalField(max_digits=5, decimal_places=2)
-    created_at = models.DateTimeField(auto_now_add=True)
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
-    def __str__(self):
-        return self.code
-
-def generate_coupon_code(length: int = 10) -> str:
+def send_order_confirmation_email(order):
     """
-    Generates a unique alphanumeric coupon code of a specified length by
-    checking for its existence in the database.
+    Sends an order confirmation email to the customer.
 
     Args:
-        length (int): The desired length of the coupon code. Must be a positive integer.
-                      Defaults to 10.
-
-    Returns:
-        str: A unique, randomly generated coupon code.
-
-    Raises:
-        ValueError: If the provided length is not a positive integer.
+        order: The Order object to be confirmed.
     """
-    if not isinstance(length, int) or length <= 0:
-        raise ValueError("Length must be a positive integer.")
+    subject = f'Order Confirmation: #{order.id}'
+    message = f"""
+    Hello {order.customer_name},
 
-    characters = string.ascii_uppercase + string.digits
+    Thank you for your order!
+
+    Order Details:
+    --------------------
+    Order ID: {order.id}
+    Total Amount: ${order.total_price}
+    Status: {order.status}
+
+    Items:
+    {", ".join([item.product.name for item in order.order_items.all()])}
     
-    while True:
-        # Generate a random code
-        code = ''.join(secrets.choice(characters) for _ in range(length))
-        
-        # Check if the generated code already exists in the database
-        if not Coupon.objects.filter(code=code).exists():
-            return code
+    We will notify you when your order is ready.
+
+    Sincerely,
+    The Restaurant Management Team
+    """
+    from_email = settings.DEFAULT_FROM_EMAIL
+    recipient_list = [order.customer_email]
+
+    try:
+        send_mail(
+            subject,
+            message,
+            from_email,
+            recipient_list,
+            fail_silently=False,
+        )
+        logger.info(f"Order confirmation email sent successfully for Order #{order.id} to {order.customer_email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email for Order #{order.id} to {order.customer_email}. Error: {e}")
+        return False
