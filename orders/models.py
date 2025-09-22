@@ -4,6 +4,19 @@ from django.db.models import Sum
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+class Restaurant(models.Model):
+    """
+    A model to represent a single restaurant.
+    """
+    name = models.CharField(max_length=255, unique=True)
+    opening_days = models.CharField(
+        max_length=50,
+        help_text="Comma-separated list of days (e.g., 'Mon,Tue,Wed,Fri,Sat')"
+    )
+
+    def __str__(self):
+        return self.name
+
 class OrderStatus(models.Model):
     """
     A model to represent different order statuses.
