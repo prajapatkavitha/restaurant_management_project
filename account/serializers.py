@@ -1,29 +1,23 @@
-from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .utils import is_valid_email # Import the new utility function
+from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-class UserSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(required=True)
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating user profiles.
+    Exposes only the fields that are safe for a user to update themselves.
+    """
     class Meta:
         model = User
-        fields = ['username', 'password', 'email', 'role']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ['username', 'email', 'first_name', 'last_name']
+        read_only_fields = ['username'] # Optionally make username read-only
 
     def validate_email(self, value):
-        if not is_valid_email(value):
-            raise serializers.ValidationError("Please enter a valid email address.")
+        """
+        Check if the email is not already in use by another user.
+        """
+        user = self.context['request'].user
+        if User.objects.filter(email=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("This email is already in use.")
         return value
-
-    def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        return user
-
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        # Add user role to the token payload
-        data['role'] = self.user.role
-        return data
