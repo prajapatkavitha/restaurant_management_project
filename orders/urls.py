@@ -10,7 +10,8 @@ from .views import (
 
 # Create a router instance to handle ViewSets
 router = DefaultRouter()
-router.register(r'waiter-orders', WaiterOrderViewSet, basename='waiter-order')
+# Register the WaiterOrderViewSet under a more general 'orders' path
+router.register(r'orders', WaiterOrderViewSet, basename='order')
 router.register(r'coupons', CouponViewSet, basename='coupon')
 
 urlpatterns = [
@@ -18,7 +19,6 @@ urlpatterns = [
     path('', include(router.urls)),
 
     # URLs for the specific APIView and generics views
-    path('orders/', OrderView.as_view(), name='order-list-create'),
     path('reservations/', ReservationView.as_view(), name='reservation-create'),
     path('reports/top-customers/', TopCustomersReportView.as_view(), name='top-customers-report'),
 ]
