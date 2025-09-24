@@ -2,8 +2,10 @@ from rest_framework import viewsets, mixins, status, generics, permissions
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Count
+from django.utils import timezone
 from .models import Order, OrderItem, OrderStatus, Restaurant, Coupon, Reservation, Feedback
 from .serializers import (
     OrderSerializer,
@@ -14,6 +16,8 @@ from .serializers import (
 )
 from .utils import generate_coupon_code
 from account.permissions import IsWaiter, IsCashier, IsManagerOrAdmin, IsChef
+from products.models import Menu
+
 
 # Custom permission for customers
 class IsCustomer(permissions.BasePermission):
@@ -22,6 +26,7 @@ class IsCustomer(permissions.BasePermission):
     """
     def has_permission(self, request, view):
         return request.user and request.user.role == 'customer'
+
 
 class OrderViewSet(viewsets.ModelViewSet):
     """
@@ -224,3 +229,39 @@ class FeedbackCreateAPIView(generics.CreateAPIView):
             status=status.HTTP_201_CREATED,
             headers=headers
         )
+
+class DashboardAPIView(APIView):
+    """
+    API endpoint to provide key dashboard metrics for managers.
+    """
+    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
+
+    def get(self, request, *args, **kwargs):
+        # Calculate the start and end of the current day
+        today = timezone.now().date()
+        start_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
+        end_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.max().time()))
+
+        # Get orders for the current day
+        daily_orders = Order.objects.filter(created_at__range=(start_of_day, end_of_day))
+
+        # Calculate total orders and total revenue
+        total_orders = daily_orders.count()
+        total_revenue = daily_orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
+
+        # Find the top-selling dish of the day
+        top_dish = None
+        top_selling_item = Menu.objects.annotate(
+            total_sold=Count('orderitem')
+        ).order_by('-total_sold').first()
+        
+        if top_selling_item:
+            top_dish = top_selling_item.name
+        
+        # Prepare the response data
+        response_data = {
+            'total_orders': total_orders,
+            'revenue': total_revenue,
+            'top_dish': top_dish
+        }
+        return Response(response_data)
