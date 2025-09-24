@@ -1,131 +1,61 @@
-from django.db import models
-from django.conf import settings
-from django.db.models import Sum
-from django.core.exceptions import ValidationError
-from django.utils import timezone
+from rest_framework import serializers
+from .models import Order, OrderItem, OrderStatus, Restaurant, Coupon, Reservation
 
-class Restaurant(models.Model):
+class RestaurantSerializer(serializers.ModelSerializer):
     """
-    A model to represent a single restaurant.
+    Serializer for the Restaurant model.
     """
-    name = models.CharField(max_length=255, unique=True)
-    opening_days = models.CharField(
-        max_length=50,
-        help_text="Comma-separated list of days (e.g., 'Mon,Tue,Wed,Fri,Sat')"
-    )
+    class Meta:
+        model = Restaurant
+        fields = ['id', 'name', 'opening_days']
 
-    def __str__(self):
-        return self.name
-
-class OrderStatus(models.Model):
+class OrderStatusSerializer(serializers.ModelSerializer):
     """
-    A model to represent different order statuses.
+    Serializer for the OrderStatus model.
     """
-    class StatusChoices(models.TextChoices):
-        PENDING = 'pending', 'Pending'
-        PREPARING = 'preparing', 'Preparing'
-        COMPLETED = 'completed', 'Completed'
-        CANCELLED = 'cancelled', 'Cancelled'
+    class Meta:
+        model = OrderStatus
+        fields = ['id', 'name']
 
-    name = models.CharField(
-        max_length=50,
-        unique=True,
-        choices=StatusChoices.choices,
-        default=StatusChoices.PENDING
-    )
-
-    def __str__(self):
-        return self.name
-
-class ActiveOrderManager(models.Manager):
+class OrderItemSerializer(serializers.ModelSerializer):
     """
-    Custom manager to filter for active orders.
+    Serializer for the OrderItem model.
     """
-    def get_queryset(self):
-        return super().get_queryset().filter(
-            status__name__in=[
-                OrderStatus.StatusChoices.PENDING,
-                OrderStatus.StatusChoices.PREPARING
-            ]
-        )
+    item_name = serializers.CharField(source='item.name', read_only=True)
+    item_price = serializers.DecimalField(source='item.price', max_digits=6, decimal_places=2, read_only=True)
 
-class Order(models.Model):
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'order', 'item', 'item_name', 'item_price', 'quantity']
+        read_only_fields = ['order']
+
+class OrderSerializer(serializers.ModelSerializer):
     """
-    Model representing a customer's order.
+    Serializer for the Order model, including its items and total price.
     """
-    customer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='customer_orders'
-    )
-    waiter = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='orders'
-    )
-    table_number = models.IntegerField()
-    status = models.ForeignKey(
-        OrderStatus,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='orders_by_status'
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    items = OrderItemSerializer(many=True, read_only=True)
+    status_name = serializers.CharField(source='status.name', read_only=True)
+    total_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
-    objects = models.Manager() # The default manager
-    active_orders = ActiveOrderManager() # Our custom manager
+    class Meta:
+        model = Order
+        fields = ['id', 'customer', 'waiter', 'table_number', 'status_name', 'items', 'total_price', 'created_at', 'updated_at']
 
-    @property
-    def total_price(self):
-        """Calculates the total price of the order by summing up item prices."""
-        total = self.items.aggregate(total=Sum(models.F('quantity') * models.F('item__price')))['total']
-        return total if total is not None else 0
-
-    def __str__(self):
-        return f"Order #{self.id} for Table {self.table_number}"
-
-class OrderItem(models.Model):
+class CouponSerializer(serializers.ModelSerializer):
     """
-    Model representing a single item within an order.
+    Serializer for the Coupon model.
     """
-    order = models.ForeignKey(
-        Order,
-        on_delete=models.CASCADE,
-        related_name='items'
-    )
-    item = models.ForeignKey('products.Menu', on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
+    class Meta:
+        model = Coupon
+        fields = ['id', 'code', 'active', 'discount', 'created_at']
 
-    def __str__(self):
-        return f"{self.quantity} x {self.item.name}"
-
-class Reservation(models.Model):
+class ReservationSerializer(serializers.ModelSerializer):
     """
-    A model to represent a reservation.
+    Serializer for the Reservation model.
     """
-    customer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='reservations'
-    )
-    table_number = models.IntegerField()
-    date = models.DateField()
-    time = models.TimeField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    customer_username = serializers.CharField(source='customer.username', read_only=True)
 
-    def __str__(self):
-        return f"Reservation by {self.customer.username} for Table {self.table_number} on {self.date}"
-
-class Coupon(models.Model):
-    """
-    A model to represent a coupon code.
-    """
-    code = models.CharField(max_length=20, unique=True)
-    active = models.BooleanField(default=True)
-    discount = models.DecimalField(max_digits=5, decimal_places=2)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.code
+    class Meta:
+        model = Reservation
+        fields = ['id', 'customer', 'customer_username', 'table_number', 'date', 'time', 'created_at']
+        read_only_fields = ['customer']
