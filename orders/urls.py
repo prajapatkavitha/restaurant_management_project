@@ -7,6 +7,7 @@ from .views import (
     ReservationViewSet,
     TopCustomersReportView,
     CouponViewSet,
+    FeedbackCreateAPIView
 )
 
 # Create a router instance to handle ViewSets
@@ -26,4 +27,6 @@ urlpatterns = [
     path('', include(router.urls)),
     # Add a separate path for the APIView report
     path('reports/top-customers/', TopCustomersReportView.as_view(), name='top-customers-report'),
+    # Path for creating customer feedback
+    path('feedback/', FeedbackCreateAPIView.as_view(), name='feedback-create'),
 ]
