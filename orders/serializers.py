@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem, Reservation, Coupon
+from .models import Order, OrderItem, Reservation, Coupon, Feedback
 from products.models import Menu
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -7,11 +7,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
     Serializer for the OrderItem model. Handles nested creation within Order.
     """
     item_name = serializers.CharField(source='item.name', read_only=True)
+    item_price = serializers.DecimalField(source='item.price', max_digits=6, decimal_places=2, read_only=True)
     item = serializers.PrimaryKeyRelatedField(queryset=Menu.objects.all())
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'item', 'item_name', 'quantity']
+        fields = ['id', 'item', 'item_name', 'quantity', 'item_price']
         read_only_fields = ['id', 'item_name']
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -75,3 +76,26 @@ class CouponSerializer(serializers.ModelSerializer):
         model = Coupon
         fields = ['id', 'code', 'discount', 'active', 'created_at']
         read_only_fields = ['code', 'created_at']
+
+class FeedbackSerializer(serializers.ModelSerializer):
+    order_id = serializers.PrimaryKeyRelatedField(
+        source='order',
+        queryset=Order.objects.all(),
+        write_only=True
+    )
+
+    class Meta:
+        model = Feedback
+        fields = ['order_id', 'rating', 'comments']
+
+    def validate_order_id(self, value):
+        order = value
+        # Check if the order is in a "completed" status
+        if order.status.name != 'completed':
+            raise serializers.ValidationError('Feedback can only be submitted for completed orders.')
+
+        # Check if feedback has already been submitted for this order
+        if Feedback.objects.filter(order=order).exists():
+            raise serializers.ValidationError('Feedback for this order has already been submitted.')
+
+        return value
