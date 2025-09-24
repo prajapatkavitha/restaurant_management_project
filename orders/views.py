@@ -4,15 +4,16 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum, F
-from .models import Order, OrderItem, OrderStatus, Restaurant, Coupon, Reservation
+from .models import Order, OrderItem, OrderStatus, Restaurant, Coupon, Reservation, Feedback
 from .serializers import (
     OrderSerializer,
     OrderItemSerializer,
     CouponSerializer,
-    ReservationSerializer
+    ReservationSerializer,
+    FeedbackSerializer
 )
 from .utils import generate_coupon_code
-from account.permissions import IsWaiter, IsCashier, IsManagerOrAdmin
+from account.permissions import IsWaiter, IsCashier, IsManagerOrAdmin, IsChef
 
 # Custom permission for customers
 class IsCustomer(permissions.BasePermission):
@@ -197,3 +198,29 @@ class WaiterOrderViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class FeedbackCreateAPIView(generics.CreateAPIView):
+    """
+    API endpoint for customers to submit feedback on a completed order.
+    """
+    queryset = Feedback.objects.all()
+    serializer_class = FeedbackSerializer
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # Assuming the user submitting the feedback is the customer
+        order = serializer.validated_data['order']
+        if order.customer != request.user:
+            return Response(
+                {"detail": "You can only leave feedback for orders you placed."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {"message": "Feedback submitted successfully"},
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
