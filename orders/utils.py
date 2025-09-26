@@ -32,11 +32,13 @@ def send_email(subject, message, recipient_list):
 def send_order_confirmation_email(order):
     """
     Sends an order confirmation email to the customer using the generic send_email function.
+    It now uses the unique 'order_id' instead of the internal database 'id'.
 
     Args:
         order: The Order object to be confirmed.
     """
-    subject = f'Order Confirmation: #{order.id}'
+    # Use order.order_id (the unique, short alphanumeric ID)
+    subject = f'Order Confirmation: #{order.order_id}'
     message = f"""
     Hello {order.customer_name},
 
@@ -44,7 +46,7 @@ def send_order_confirmation_email(order):
 
     Order Details:
     --------------------
-    Order ID: {order.id}
+    Order ID: {order.order_id}
     Total Amount: ${order.total_price}
     Status: {order.status}
 
