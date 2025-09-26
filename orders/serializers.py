@@ -1,6 +1,14 @@
 from rest_framework import serializers
-from .models import Order, OrderItem, Reservation, Coupon, Feedback
+from .models import Order, OrderItem, Reservation, Coupon, Feedback, OrderStatus
 from products.models import Menu
+
+class OrderStatusSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the OrderStatus model.
+    """
+    class Meta:
+        model = OrderStatus
+        fields = ['id', 'name']
 
 class OrderItemSerializer(serializers.ModelSerializer):
     """
@@ -21,11 +29,12 @@ class OrderSerializer(serializers.ModelSerializer):
     """
     items = OrderItemSerializer(many=True)
     waiter_username = serializers.CharField(source='waiter.username', read_only=True)
+    status = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = Order
-        fields = ['id', 'waiter', 'waiter_username', 'table_number', 'status', 'created_at', 'items']
-        read_only_fields = ['waiter', 'status', 'created_at']
+        fields = ['id', 'waiter', 'waiter_username', 'status', 'total', 'customer', 'created_at', 'items']
+        read_only_fields = ['id', 'waiter_username', 'status', 'total', 'customer', 'created_at']
 
     def create(self, validated_data):
         """
@@ -46,7 +55,6 @@ class OrderSerializer(serializers.ModelSerializer):
 
         # Update other fields on the Order instance
         instance.waiter = validated_data.get('waiter', instance.waiter)
-        instance.table_number = validated_data.get('table_number', instance.table_number)
         instance.status = validated_data.get('status', instance.status)
         instance.save()
 
