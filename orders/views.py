@@ -16,7 +16,6 @@ from .serializers import (
 )
 from .utils import generate_coupon_code
 from account.permissions import IsWaiter, IsCashier, IsManagerOrAdmin, IsChef
-from products.models import Menu
 
 
 # Custom permission for customers
@@ -210,7 +209,7 @@ class FeedbackCreateAPIView(generics.CreateAPIView):
     """
     queryset = Feedback.objects.all()
     serializer_class = FeedbackSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsCustomer] # Added IsCustomer permission
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -229,6 +228,15 @@ class FeedbackCreateAPIView(generics.CreateAPIView):
             status=status.HTTP_201_CREATED,
             headers=headers
         )
+
+class FeedbackListAPIView(generics.ListAPIView):
+    """
+    API endpoint for managers and admins to list all feedback.
+    """
+    queryset = Feedback.objects.all()
+    serializer_class = FeedbackSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
+
 
 class DashboardAPIView(APIView):
     """
