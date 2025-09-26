@@ -5,9 +5,33 @@ import logging
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+def send_email(subject, message, recipient_list):
+    """
+    Sends a general email using Django's send_mail function.
+
+    Args:
+        subject (str): The subject of the email.
+        message (str): The body of the email.
+        recipient_list (list): A list of recipient email addresses.
+    """
+    from_email = settings.DEFAULT_FROM_EMAIL
+    try:
+        send_mail(
+            subject,
+            message,
+            from_email,
+            recipient_list,
+            fail_silently=False,
+        )
+        logger.info(f"Email sent successfully with subject: '{subject}' to {recipient_list}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email with subject: '{subject}'. Error: {e}")
+        return False
+
 def send_order_confirmation_email(order):
     """
-    Sends an order confirmation email to the customer.
+    Sends an order confirmation email to the customer using the generic send_email function.
 
     Args:
         order: The Order object to be confirmed.
@@ -32,19 +56,6 @@ def send_order_confirmation_email(order):
     Sincerely,
     The Restaurant Management Team
     """
-    from_email = settings.DEFAULT_FROM_EMAIL
     recipient_list = [order.customer_email]
 
-    try:
-        send_mail(
-            subject,
-            message,
-            from_email,
-            recipient_list,
-            fail_silently=False,
-        )
-        logger.info(f"Order confirmation email sent successfully for Order #{order.id} to {order.customer_email}")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to send email for Order #{order.id} to {order.customer_email}. Error: {e}")
-        return False
+    return send_email(subject, message, recipient_list)
