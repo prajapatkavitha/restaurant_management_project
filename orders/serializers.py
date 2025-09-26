@@ -84,7 +84,7 @@ class FeedbackSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
-    class Meta:
+    class Meta: 
         model = Feedback
         fields = ['order_id', 'rating', 'comments']
 
