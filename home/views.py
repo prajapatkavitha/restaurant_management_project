@@ -1,10 +1,13 @@
 from rest_framework import generics
-from products.models import Category
-from .serializers import CategorySerializer
+from rest_framework.permissions import AllowAny
+from .models import ContactFormSubmission
+from .serializers import ContactFormSubmissionSerializer
 
-class CategoryListAPIView(generics.ListAPIView):
+class ContactFormSubmissionCreateAPIView(generics.CreateAPIView):
     """
-    API view to list all menu categories.
+    API view for submitting a new contact form.
+    Only allows POST requests to create a new submission.
     """
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+    queryset = ContactFormSubmission.objects.all()
+    serializer_class = ContactFormSubmissionSerializer
+    permission_classes = [AllowAny]
